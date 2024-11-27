@@ -44,7 +44,7 @@ def comp(uncmprsd_file_name, cmprsd_file_name):
                     if num != 10 and num != 3:
                         compressed_file.write(chr(num))
 
-def decomp(cmprsd_file_name, output_file_name):
+def decomp(cmprsd_file_name, output_file_name, line_length=800):
     with open(output_file_name, "w",encoding="utf-8") as uncompressed_file, open(cmprsd_file_name, "r",encoding="utf-8") as compressed_file:
         count = 0
         line = 0
@@ -54,15 +54,38 @@ def decomp(cmprsd_file_name, output_file_name):
                 break
             uncompressed_file.write(f"{ord(ch)},")
             count += 1
-            if count == 800:
+            if count == line_length:
                 uncompressed_file.write("\n")
                 line += 1
                 count = 0
         print(f"Line: {line}")
+        
+        
+        
+def combined_ascii_and_interpolation(folder_combined, original_bmp, scale_factor):
+    if not os.path.exists(folder_combined):
+        os.makedirs(folder_combined)
+    # downscale image
+    inter.downscale_image(original_bmp, scale_factor, os.path.join(folder_combined, 'downscaled.bmp'))
+    # convert bmp to luminance txt
+    bmp_to_luminance_txt(os.path.join(folder_combined, 'downscaled.bmp'), os.path.join(folder_combined, 'unencoded.txt'))
+    # compress txt
+    comp(os.path.join(folder_combined, 'unencoded.txt'), os.path.join(folder_combined, 'compressed.txt'))
+    # decompress txt
+    decomp(os.path.join(folder_combined, 'compressed.txt'), os.path.join(folder_combined, 'output.txt'), 400)
+    # upsample image
+    image = inter.load_image_from_txt(os.path.join(folder_combined, 'output.txt'))
+    interpolated_image = inter.bilinear_interpolation(image, scale_factor)
+    inter.save_image_to_bmp(interpolated_image, os.path.join(folder_combined, 'output.bmp'))
+    
+    
+
 
 if __name__ == "__main__":
     
     folder_ascii = "ascii"
+    folder_combined = "combined"
+    
     # create folder if not exists
     if not os.path.exists(folder_ascii):
         os.makedirs(folder_ascii)
@@ -79,4 +102,9 @@ if __name__ == "__main__":
     decomp(compressed_txt, output_txt)
     luminance_txt_to_bmp(output_txt, output_bmp)
     inter.interpolation(original_bmp, 2)
+    
+    combined_ascii_and_interpolation(folder_combined, original_bmp, 2)
+    
+    
+    
     
